@@ -1,0 +1,66 @@
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_ADXL345_U.h>
+Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified();
+#define USE_ARDUINO_INTERRUPTS true    // Set-up low-level interrupts for most acurate BPM math
+#include <PulseSensorPlayground.h>     // Includes the PulseSensorPlayground Library
+
+const int PulseWire = 0;       // 'S' Signal pin connected to A0
+const int LED13 = 13;          // The on-board Arduino LED
+int Threshold = 550;           // Determine which Signal to "count as a beat" and which to ignore
+
+int val;
+int tempPin = 1;
+
+PulseSensorPlayground pulseSensor;  // Creates an object
+void setup(void) 
+{
+   Serial.begin(9600);  
+
+   if(!accel.begin())
+   {
+      Serial.println("No ADXL345 sensor detected.");
+      while(1);
+   }
+   Serial.begin(9600);
+
+  // Configure the PulseSensor object, by assigning our variables to it
+  pulseSensor.analogInput(PulseWire);   
+  pulseSensor.blinkOnPulse(LED13);       // Blink on-board LED with heartbeat
+  pulseSensor.setThreshold(Threshold);   
+
+  // Double-check the "pulseSensor" object was created and began seeing a signal
+  if (pulseSensor.begin()) {
+    Serial.println("PulseSensor object created!");
+  }
+    Serial.begin(9600);
+
+}
+void loop(void) 
+{
+   sensors_event_t event;
+   accel.getEvent(&event);
+   Serial.print("X: "); Serial.print(event.acceleration.x); Serial.print("  ");
+   Serial.print("Y: "); Serial.print(event.acceleration.y); Serial.print("  ");
+   Serial.print("Z: "); Serial.print(event.acceleration.z); Serial.print("  ");
+   Serial.println("m/s^2 ");
+   delay(500);
+   int myBPM = pulseSensor.getBeatsPerMinute();      // Calculates BPM
+
+    if (pulseSensor.sawStartOfBeat()) {               // Constantly test to see if a beat happened
+      Serial.println("♥  A HeartBeat Happened ! "); // If true, print a message
+      Serial.print("BPM: ");
+      Serial.println(myBPM);                        // Print the BPM value
+    }
+
+  delay(20);
+  val = analogRead(tempPin);
+  float mv = ( val/1024.0)*5000;
+  float cel = mv/10;
+  float farh = (cel*9)/5 + 32;
+  Serial.print("TEMPRATURE = ");
+  Serial.print(cel);
+  Serial.print("*C");
+  Serial.println();
+  delay(1000);
+}
